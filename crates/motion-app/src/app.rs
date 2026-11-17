@@ -111,7 +111,9 @@ impl ApplicationHandler for MotionApp {
         let egui_renderer = egui_wgpu::Renderer::new(
             &device,
             surface_format,
-            egui_wgpu::RendererOptions::default(),
+            None,
+            1,
+            false,
         );
 
         self.surface = Some(surface);
@@ -256,7 +258,7 @@ impl ApplicationHandler for MotionApp {
                 egui_renderer.update_buffers(device, queue, &mut encoder, &tris, &screen_desc);
 
                 {
-                    let mut render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    let render_pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                         label: Some("Egui Render Pass"),
                         color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                             view: &view,

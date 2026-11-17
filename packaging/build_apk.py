@@ -52,7 +52,7 @@ def main():
     libs_dir.mkdir(parents=True, exist_ok=True)
 
     # 1. Compile Rust library with cargo-ndk
-    cargo_flags = ["cargo", "ndk", "-t", args.abi, "-o", str(BUILD_DIR / "libs"), "build", "-p", "motion-app"]
+    cargo_flags = ["cargo", "ndk", "-t", args.abi, "-o", str(BUILD_DIR / "libs"), "build", "-p", "motion-app", "--lib"]
     if args.profile == "release":
         cargo_flags.append("--release")
     run_cmd(cargo_flags, cwd=ROOT)
