@@ -108,7 +108,11 @@ impl ApplicationHandler for MotionApp {
             None,
             Some(device.limits().max_texture_dimension_2d as usize),
         );
-        let egui_renderer = egui_wgpu::Renderer::new(&device, surface_format, None, 1, false);
+        let egui_renderer = egui_wgpu::Renderer::new(
+            &device,
+            surface_format,
+            egui_wgpu::RendererOptions::default(),
+        );
 
         self.surface = Some(surface);
         self.device = Some(device);
@@ -267,7 +271,7 @@ impl ApplicationHandler for MotionApp {
                         occlusion_query_set: None,
                     });
 
-                    egui_renderer.render(&mut render_pass, &tris, &screen_desc);
+                    egui_renderer.render(&mut render_pass.forget_lifetime(), &tris, &screen_desc);
                 }
 
                 for id in &full_output.textures_delta.free {
