@@ -60,5 +60,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: motion-craft-${{ matrix.abi }}
-          path: android/build/*.apk
+          path: android/build/motion-craft-${{ matrix.abi }}.apk
+          if-no-files-found: error
           retention-days: 14

@@ -103,7 +103,7 @@ impl ApplicationHandler for MotionApp {
         let egui_state = egui_winit::State::new(
             egui_ctx.clone(),
             egui::ViewportId::ROOT,
-            &window,
+            window.as_ref(),
             Some(window.scale_factor() as f32),
             None,
             Some(device.limits().max_texture_dimension_2d as usize),

@@ -1,9 +1,9 @@
 pub mod app;
 
 #[cfg(target_os = "android")]
-use android_activity::AndroidApp;
+use winit::event_loop::EventLoop;
 #[cfg(target_os = "android")]
-use winit::event_loop::EventLoopBuilder;
+use winit::platform::android::activity::AndroidApp;
 #[cfg(target_os = "android")]
 use winit::platform::android::EventLoopBuilderExtAndroid;
 
@@ -16,7 +16,7 @@ fn android_main(android_app: AndroidApp) {
             .with_tag("MotionCraft"),
     );
 
-    let event_loop = EventLoopBuilder::new()
+    let event_loop = EventLoop::builder()
         .with_android_app(android_app)
         .build()
         .expect("Failed to build Android event loop");

@@ -71,15 +71,24 @@ def main():
 
     # 3. Add native libraries into APK zip
     import zipfile
+    so_files = list((BUILD_DIR / "libs").rglob("*.so"))
+    if not so_files:
+        print(f"Error: No .so files found in {BUILD_DIR / 'libs'}")
+        sys.exit(1)
     with zipfile.ZipFile(apk_unaligned, "a") as z:
-        for f in (BUILD_DIR / "libs" / args.abi).glob("*.so"):
-            z.write(f, f"lib/{args.abi}/{f.name}")
+        for f in so_files:
+            abi = f.parent.name
+            target_path = f"lib/{abi}/{f.name}"
+            z.write(f, target_path)
+            print(f"Added {f.name} into APK at {target_path}")
 
     # 4. ZipAlign
     run_cmd([
         str(tools / "zipalign"), "-f", "-p", "4",
         str(apk_unaligned), str(apk_aligned)
     ])
+    if apk_unaligned.exists():
+        apk_unaligned.unlink()
 
     # 5. Sign with debug keystore
     keystore = BUILD_DIR / "debug.keystore"
