@@ -1,0 +1,12 @@
+[package]
+name = "motion-ui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+motion-core = { path = "../motion-core" }
+egui = { workspace = true }
+glam = { workspace = true }
+log = { workspace = true }

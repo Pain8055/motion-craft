@@ -1,0 +1,32 @@
+[package]
+name = "motion-app"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[lib]
+name = "motion_app"
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "motion-craft"
+path = "src/main.rs"
+
+[dependencies]
+motion-core = { path = "../motion-core" }
+motion-render = { path = "../motion-render" }
+motion-ui = { path = "../motion-ui" }
+wgpu = { workspace = true }
+winit = { workspace = true }
+egui = { workspace = true }
+egui-wgpu = { workspace = true }
+egui-winit = { workspace = true }
+raw-window-handle = { workspace = true }
+pollster = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+
+[target.'cfg(target_os = "android")'.dependencies]
+android_logger = "0.14"
+android-activity = { version = "0.6", features = ["native-activity"] }

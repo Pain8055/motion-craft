@@ -1,0 +1,15 @@
+[package]
+name = "motion-render"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+motion-core = { path = "../motion-core" }
+wgpu = { workspace = true }
+bytemuck = { workspace = true }
+glam = { workspace = true }
+log = { workspace = true }
+thiserror = { workspace = true }
+image = { workspace = true }

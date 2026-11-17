@@ -1,0 +1,32 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/motion-core",
+    "crates/motion-render",
+    "crates/motion-ui",
+    "crates/motion-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Pain8055"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/Pain8055/motion-craft"
+
+[workspace.dependencies]
+glam = { version = "0.29", default-features = false, features = ["std"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+bytemuck = { version = "1.18", features = ["derive"] }
+thiserror = "2.0"
+log = "0.4"
+env_logger = "0.11"
+wgpu = { version = "23.0", default-features = false, features = ["wgsl"] }
+winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
+egui = { version = "0.29", default-features = false }
+egui-wgpu = { version = "0.29", default-features = false, features = ["wgpu"] }
+egui-winit = { version = "0.29", default-features = false, features = ["links"] }
+raw-window-handle = "0.6"
+pollster = "0.4"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg"] }
