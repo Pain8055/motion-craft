@@ -66,6 +66,8 @@ def main():
         str(tools / "aapt2"), "link",
         "-I", str(android_jar),
         "--manifest", str(manifest),
+        "--min-sdk-version", "24",
+        "--target-sdk-version", "34",
         "-o", str(apk_unaligned),
     ])
 
@@ -75,7 +77,7 @@ def main():
     if not so_files:
         print(f"Error: No .so files found in {BUILD_DIR / 'libs'}")
         sys.exit(1)
-    with zipfile.ZipFile(apk_unaligned, "a") as z:
+    with zipfile.ZipFile(apk_unaligned, "a", compression=zipfile.ZIP_DEFLATED) as z:
         for f in so_files:
             abi = f.parent.name
             target_path = f"lib/{abi}/{f.name}"
