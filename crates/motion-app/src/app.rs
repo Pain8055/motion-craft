@@ -49,35 +49,90 @@ impl ApplicationHandler for MotionApp {
             .with_title("Motion Craft — After Effects in Rust (wgpu / Android)")
             .with_inner_size(winit::dpi::LogicalSize::new(1280.0, 720.0));
 
-        let window = Arc::new(event_loop.create_window(win_attr).unwrap());
+        let window = match event_loop.create_window(win_attr) {
+            Ok(w) => Arc::new(w),
+            Err(e) => {
+                log::error!("Failed to create window: {:?}", e);
+                return;
+            }
+        };
         self.window = Some(window.clone());
 
-        let instance = wgpu::Instance::default();
-        let surface = instance.create_surface(window.clone()).unwrap();
+        log::info!("Creating wgpu Instance with all backends (Vulkan, GLES)...");
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::all(),
+            ..Default::default()
+        });
 
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::HighPerformance,
+        let surface = match instance.create_surface(window.clone()) {
+            Ok(s) => s,
+            Err(e) => {
+                log::error!("Failed to create wgpu surface: {:?}", e);
+                return;
+            }
+        };
+
+        log::info!("Requesting compatible GPU adapter...");
+        let adapter = match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
             compatible_surface: Some(&surface),
             force_fallback_adapter: false,
-        }))
-        .expect("Failed to find a compatible GPU adapter");
+        })) {
+            Some(a) => a,
+            None => {
+                log::warn!("No adapter found with compatible_surface constraint, trying without surface...");
+                match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::default(),
+                    compatible_surface: None,
+                    force_fallback_adapter: false,
+                })) {
+                    Some(a) => a,
+                    None => {
+                        log::warn!("No default adapter found, trying fallback adapter...");
+                        match pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                            power_preference: wgpu::PowerPreference::default(),
+                            compatible_surface: None,
+                            force_fallback_adapter: true,
+                        })) {
+                            Some(a) => a,
+                            None => {
+                                log::error!("CRITICAL: No compatible GPU adapter found on this device!");
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        };
 
-        let (device, queue) = pollster::block_on(adapter.request_device(
+        log::info!("Selected GPU Adapter: {:?}", adapter.get_info());
+
+        let (device, queue) = match pollster::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
                 label: Some("Motion Device"),
                 required_features: wgpu::Features::empty(),
-                required_limits: wgpu::Limits::downlevel_webgl2_defaults(),
+                required_limits: wgpu::Limits::downlevel_webgl2_defaults().using_resolution(adapter.limits()),
                 memory_hints: Default::default(),
             },
             None,
-        ))
-        .expect("Failed to create GPU device");
+        )) {
+            Ok(pair) => pair,
+            Err(e) => {
+                log::error!("Failed to create GPU device: {:?}", e);
+                return;
+            }
+        };
 
         let size = window.inner_size();
         let width = size.width.max(1);
         let height = size.height.max(1);
 
         let surface_caps = surface.get_capabilities(&adapter);
+        if surface_caps.formats.is_empty() {
+            log::error!("Surface reported 0 supported formats!");
+            return;
+        }
+
         let surface_format = surface_caps
             .formats
             .iter()
@@ -85,13 +140,29 @@ impl ApplicationHandler for MotionApp {
             .find(|f| f.is_srgb())
             .unwrap_or(surface_caps.formats[0]);
 
+        let present_mode = if surface_caps.present_modes.contains(&wgpu::PresentMode::AutoVsync) {
+            wgpu::PresentMode::AutoVsync
+        } else if surface_caps.present_modes.contains(&wgpu::PresentMode::Fifo) {
+            wgpu::PresentMode::Fifo
+        } else if !surface_caps.present_modes.is_empty() {
+            surface_caps.present_modes[0]
+        } else {
+            wgpu::PresentMode::Fifo
+        };
+
+        let alpha_mode = if !surface_caps.alpha_modes.is_empty() {
+            surface_caps.alpha_modes[0]
+        } else {
+            wgpu::CompositeAlphaMode::Auto
+        };
+
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
             width,
             height,
-            present_mode: wgpu::PresentMode::AutoVsync,
-            alpha_mode: surface_caps.alpha_modes[0],
+            present_mode,
+            alpha_mode,
             view_formats: vec![],
             desired_maximum_frame_latency: 2,
         };
@@ -124,6 +195,15 @@ impl ApplicationHandler for MotionApp {
         self.egui_ctx = Some(egui_ctx);
         self.egui_state = Some(egui_state);
         self.egui_renderer = Some(egui_renderer);
+
+        log::info!("Motion Craft initialization completed successfully. Triggering first frame redraw.");
+        window.request_redraw();
+    }
+
+    fn suspended(&mut self, _event_loop: &ActiveEventLoop) {
+        log::info!("Application suspended: releasing surface and window handles");
+        self.surface = None;
+        self.window = None;
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
@@ -188,14 +268,28 @@ impl ApplicationHandler for MotionApp {
                 let output_frame = match surface.get_current_texture() {
                     Ok(frame) => frame,
                     Err(wgpu::SurfaceError::Lost) => {
+                        log::warn!("Surface lost, reconfiguring surface...");
                         surface.configure(device, config);
                         return;
                     }
+                    Err(wgpu::SurfaceError::Outdated) => {
+                        log::warn!("Surface outdated, reconfiguring surface...");
+                        surface.configure(device, config);
+                        return;
+                    }
+                    Err(wgpu::SurfaceError::Timeout) => {
+                        log::warn!("Surface acquire timeout, skipping frame");
+                        return;
+                    }
                     Err(wgpu::SurfaceError::OutOfMemory) => {
+                        log::error!("Surface out of memory, exiting...");
                         event_loop.exit();
                         return;
                     }
-                    Err(_) => return,
+                    Err(e) => {
+                        log::warn!("Surface texture error: {:?}", e);
+                        return;
+                    }
                 };
 
                 let view = output_frame

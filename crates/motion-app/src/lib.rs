@@ -12,9 +12,15 @@ use winit::platform::android::EventLoopBuilderExtAndroid;
 fn android_main(android_app: AndroidApp) {
     android_logger::init_once(
         android_logger::Config::default()
-            .with_max_level(log::LevelFilter::Info)
+            .with_max_level(log::LevelFilter::Debug)
             .with_tag("MotionCraft"),
     );
+
+    std::panic::set_hook(Box::new(|info| {
+        log::error!("MotionCraft PANIC: {:?}", info);
+    }));
+
+    log::info!("Starting Motion Craft Android native activity...");
 
     let event_loop = EventLoop::builder()
         .with_android_app(android_app)
