@@ -58,7 +58,7 @@ impl ApplicationHandler for MotionApp {
         };
         self.window = Some(window.clone());
 
-        log::info!("Creating wgpu Instance with all backends (Vulkan, GLES)...");
+        log::info!("Creating wgpu Instance with Vulkan backend...");
         let instance = wgpu::Instance::new(wgpu::InstanceDescriptor {
             backends: wgpu::Backends::all(),
             ..Default::default()

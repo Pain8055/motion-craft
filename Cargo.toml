@@ -21,7 +21,7 @@ bytemuck = { version = "1.18", features = ["derive"] }
 thiserror = "2.0"
 log = "0.4"
 env_logger = "0.11"
-wgpu = { version = "22.0", default-features = false, features = ["wgsl", "vulkan", "gles"] }
+wgpu = { version = "22.0" }
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 egui = { version = "0.29", default-features = false }
 egui-wgpu = { version = "0.29", default-features = false }
